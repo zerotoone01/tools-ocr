@@ -31,6 +31,18 @@
     -fx-background-image: url(/img/wrap.png);
 }
 
+#coordinateBtn{
+    -fx-background-image: url(/img/coordinate.png);
+}
+
+#settingBtn{
+    -fx-background-image: url(/img/setting.png);
+}
+
+
+
+
+
 /*#resetBtn{*/
     /*-fx-background-image: url(/img/reset.png);*/
 /*}*/

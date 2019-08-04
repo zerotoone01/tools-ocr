@@ -14,9 +14,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.ToolBar;
+import javafx.scene.control.*;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.DataFormat;
 import javafx.scene.layout.*;
@@ -71,13 +69,16 @@ public class MainFm extends Application {
 //            isSegment = newValue.getUserData().toString().equals("segmentBtn");
 //        });
 
+        // 工具栏
         HBox topBar = new HBox(
                 CommUtils.createButton("snapBtn", MainFm::doSnap, "截图"),
                 CommUtils.createButton("openImageBtn", MainFm::recImage, "打开"),
                 CommUtils.createButton("copyBtn", this::copyText, "复制"),
                 CommUtils.createButton("pasteBtn", this::pasteText, "粘贴"),
                 CommUtils.createButton("clearBtn", this::clearText, "清空"),
-                CommUtils.createButton("wrapBtn", this::wrapText, "换行")
+                CommUtils.createButton("wrapBtn", this::wrapText, "换行"),
+                CommUtils.createButton("coordinateBtn", MainFm::coordinateSet, "坐标设置"),
+                CommUtils.createButton("settingBtn", MainFm::paramSet, "参数设置")
                 //CommUtils.SEPARATOR, resetBtn, segmentBtn
         );
         topBar.setId("topBar");
@@ -85,12 +86,14 @@ public class MainFm extends Application {
         topBar.setSpacing(8);
         topBar.setPadding(new Insets(6, 8, 6, 8));
 
+        //文字区域
         textArea = new TextArea();
         textArea.setId("ocrTextArea");
         textArea.setWrapText(true);
         textArea.setBorder(new Border(new BorderStroke(Color.DARKGRAY, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
         textArea.setFont(Font.font("Arial", FontPosture.REGULAR, 14));
 
+        // footerBar 下标
         ToolBar footerBar = new ToolBar();
         footerBar.setId("statsToolbar");
         Label statsLabel = new Label();
@@ -98,13 +101,29 @@ public class MainFm extends Application {
         textArea.textProperty().addListener((observable, oldValue, newValue) -> statsProperty.set("总字数：" + newValue.replaceAll(CommUtils.SPECIAL_CHARS, "").length()));
         statsLabel.textProperty().bind(statsProperty);
         footerBar.getItems().add(statsLabel);
+
+        //三者所在位置之间的关系
         BorderPane root = new BorderPane();
         root.setTop(topBar);
         root.setCenter(textArea);
         root.setBottom(footerBar);
+
+        //主题样式
         root.getStylesheets().addAll(
                 getClass().getResource("/css/main.css").toExternalForm()
         );
+
+        Tab tab1 = new Tab();
+        tab1.setGraphic(root);
+        tab1.setId("");
+
+
+        TabPane tabPane = new TabPane(
+                tab1
+        );
+
+
+
         CommUtils.initStage(primaryStage);
         mainScene = new Scene(root, 670, 470);
         stage.setScene(mainScene);
@@ -150,6 +169,8 @@ public class MainFm extends Application {
     public static void doSnap() {
         stageInfo = new StageInfo(stage.getX(), stage.getY(),
                 stage.getWidth(), stage.getHeight(), stage.isFullScreen());
+        System.out.println("---------------->>>>>>>>>>>>第一步："+stage.getX()+", "+stage.getY()+", "+
+                stage.getWidth()+", "+stage.getHeight()+", "+stage.isFullScreen());
         runLater(screenCapture::prepareForCapture);
     }
 
@@ -210,6 +231,26 @@ public class MainFm extends Application {
         }
     }
 
+    /**
+     * 截图坐标设定
+     */
+    public static void coordinateSet(){
+        System.out.println("--------------->>>>>>>>>>>>坐标设置开始");
+        stageInfo = new StageInfo(stage.getX(), stage.getY(),
+                stage.getWidth(), stage.getHeight(), stage.isFullScreen());
+
+        runLater(screenCapture::prepareForCapture);
+    }
+
+    /**
+     * 全局参数设置
+     *  1.截图频率
+     *
+     */
+    public static void paramSet(){
+        System.out.println("--------------->>>>>>>>>>>>全局参数设置开始");
+
+    }
     private static void initKeyHook(){
         try {
             Logger logger = Logger.getLogger(GlobalScreen.class.getPackage().getName());

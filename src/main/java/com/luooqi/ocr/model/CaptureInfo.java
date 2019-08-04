@@ -89,4 +89,17 @@ public class CaptureInfo {
 		rectHeight = 0;
 	}
 
+    @Override
+    public String toString() {
+        return "CaptureInfo{" +
+                "mouseXPressed=" + mouseXPressed +
+                ", mouseYPressed=" + mouseYPressed +
+                ", mouseXNow=" + mouseXNow +
+                ", mouseYNow=" + mouseYNow +
+                ", rectUpperLeftX=" + rectUpperLeftX +
+                ", rectUpperLeftY=" + rectUpperLeftY +
+                ", rectWidth=" + rectWidth +
+                ", rectHeight=" + rectHeight +
+                '}';
+    }
 }

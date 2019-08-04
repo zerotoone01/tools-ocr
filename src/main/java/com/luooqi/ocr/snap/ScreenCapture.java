@@ -165,6 +165,7 @@ public class ScreenCapture {
 
 		// Scene
 		scene = new Scene(rootPane, CaptureInfo.ScreenWidth, CaptureInfo.ScreenHeight, Color.TRANSPARENT);
+        System.out.println("----->>>>>>>>>>>>>>>>>>>>>>>>屏幕初始化大小, 宽=："+CaptureInfo.ScreenWidth+", 高="+CaptureInfo.ScreenHeight);
 		scene.setCursor(Cursor.NONE);
 
 		addKeyHandlers();
@@ -176,8 +177,10 @@ public class ScreenCapture {
 			if (m.getButton() == MouseButton.PRIMARY) {
 				data.mouseXPressed = (int) m.getX();
 				data.mouseYPressed = (int) m.getY();
+                System.out.println("------------------>>>>>>>>>>>>鼠标按压位置：x轴， y轴="+m.getX()+", "+m.getY());
 			}
 		});
+        System.out.println("------------------>>>>>>>>>>>>鼠标最终按压位置：x轴， y轴="+mainCanvas.getWidth()+", "+mainCanvas.getHeight());
 
 		mainCanvas.setOnMouseDragged(m -> {
 			if (m.getButton() == MouseButton.PRIMARY) {
@@ -195,10 +198,14 @@ public class ScreenCapture {
 				else{
 					data.mouseYNow = CaptureInfo.ScreenHeight;
 				}
+                System.out.println("------------------>>>>>>>>>>>>mainCanvas.setOnMouseDragged位置：x轴， y轴="+data.mouseXNow+", "+data.mouseYNow);
 				repaintCanvas();
 			}
 		});
 
+        System.out.println("------------------>>>>>>>>>>>>鼠标最终截图位置：x轴， y轴="+data.mouseXNow+", "+data.mouseYNow);
+
+        System.out.println("截图信息======"+data.toString());
 		// graphics context 2D
 		initGraphContent();
 		// HideFeaturesPressed
@@ -308,8 +315,10 @@ public class ScreenCapture {
 				cancelSnap();
 				isSnapping = false;
 			} else if (key.getCode() == KeyCode.ENTER || key.getCode() == KeyCode.SPACE) {
+			    //TODO 如果开启自动截图的话，需要用到这里的参数
 				deActivateAllKeys();
 				isSnapping = false;
+
 				prepareImage();
 			}
 		});
@@ -348,6 +357,7 @@ public class ScreenCapture {
 	 * Repaint the canvas of the capture window.
 	 */
 	private void repaintCanvas() {
+        System.out.println("----->>>>repaintCanvas方法开始调用");
 		gc.clearRect(0, 0, CaptureInfo.ScreenWidth, CaptureInfo.ScreenHeight);
 		gc.setFill(CommUtils.MASK_COLOR);
 		gc.fillRect(0, 0, CaptureInfo.ScreenWidth, CaptureInfo.ScreenHeight);
@@ -373,15 +383,18 @@ public class ScreenCapture {
 						: data.mouseYNow // UP
 		;
 
+        System.out.println("------->>>>>>>>> repaintCanvas 对应的数据："+data.toString());
 		gc.strokeRect(data.rectUpperLeftX - 1.00, data.rectUpperLeftY - 1.00, data.rectWidth + 2.00, data.rectHeight + 2.00);
 		gc.clearRect(data.rectUpperLeftX, data.rectUpperLeftY, data.rectWidth, data.rectHeight);
 
 		// draw the text
+        // 截图完成之后，开始把截屏区域填色
 		if (!data.hideExtraFeatures.getValue() && (data.rectWidth > 0 || data.rectHeight > 0)) {
 			double middle = data.rectUpperLeftX + data.rectWidth / 2.00;
 			gc.setLineWidth(1);
 			gc.setFill(Color.FIREBRICK);
 			gc.fillRect(middle - 77, data.rectUpperLeftY < 50 ? data.rectUpperLeftY + 2 : data.rectUpperLeftY - 18.00, 100, 18);
+			//
 			gc.setFill(Color.WHITE);
 			gc.fillText(data.rectWidth + " * " + data.rectHeight, middle - 77 + 9,
 					data.rectUpperLeftY < 50 ? data.rectUpperLeftY + 17.00 : data.rectUpperLeftY - 4.00);
@@ -414,20 +427,24 @@ public class ScreenCapture {
 			CaptureInfo.ScreenMaxX = rectangle.x + rectangle.width;
 			CaptureInfo.ScreenWidth = rectangle.width;
 			CaptureInfo.ScreenHeight = rectangle.height;
+            System.out.println("------------>>>>>>>>>>第二步：屏幕初始位置信息="+rectangle.toString());
 			BufferedImage bufferedImage = ScreenUtil.captureScreen(rectangle);
 			bufferedImage = Scalr.resize(bufferedImage, Scalr.Method.QUALITY, Scalr.Mode.AUTOMATIC, CaptureInfo.ScreenWidth * 2, CaptureInfo.ScreenHeight * 2);
 			WritableImage fxImage = SwingFXUtils.toFXImage(bufferedImage, null);
 			deActivateAllKeys();
 			scene.setRoot(new Pane());
 			scene = new Scene(rootPane, CaptureInfo.ScreenWidth, CaptureInfo.ScreenHeight, Color.TRANSPARENT);
+			//
 			addKeyHandlers();
 			mainCanvas.setWidth(CaptureInfo.ScreenWidth);
 			mainCanvas.setHeight(CaptureInfo.ScreenHeight);
 			mainCanvas.setCursor(Cursor.CROSSHAIR);
 			initGraphContent();
+			//TODO  这里应该可以设置截屏的相关按钮
 			rootPane.setBackground(new Background(new BackgroundImage(fxImage,
 					BackgroundRepeat.NO_REPEAT, BackgroundRepeat.NO_REPEAT,
 					BackgroundPosition.CENTER, new BackgroundSize(CaptureInfo.ScreenWidth, CaptureInfo.ScreenHeight, false, false, true, true))));
+
 			repaintCanvas();
 			stage.setScene(scene);
 			stage.setFullScreenExitHint("");
@@ -435,13 +452,18 @@ public class ScreenCapture {
 			stage.setAlwaysOnTop(true);
 			stage.show();
 		});
+        System.out.println("-------->>>>>>>>>>截图背景图初始化完毕");
 	}
 
 	private void prepareImage() {
 		gc.clearRect(0, 0, stage.getWidth(), stage.getHeight());
+        System.out.println("------------>>>>>>清除图片的信息，坐标：0, 0,"+stage.getWidth()+", "+stage.getHeight());
 		BufferedImage image;
 		try {
 			mainCanvas.setDisable(true);
+			//左上角的x,y 以及截图的长度和宽度
+            System.out.println("----------->>>>>>截图完成后的数据："+ (data.rectUpperLeftX + CaptureInfo.ScreenMinX)+", "+data.rectUpperLeftY+", "+
+                    data.rectWidth+", "+data.rectHeight);
 			image = new Robot().createScreenCapture(new Rectangle(data.rectUpperLeftX + CaptureInfo.ScreenMinX, data.rectUpperLeftY, data.rectWidth, data.rectHeight));
 		} catch (AWTException ex) {
 			StaticLog.error(ex);
@@ -450,6 +472,7 @@ public class ScreenCapture {
 			mainCanvas.setDisable(false);
 			MainFm.restore(false);
 		}
+        System.out.println("----------->>>>>>>>>>>>>开始图形识别!");
 		MainFm.doOcr(image);
 	}
 
