@@ -49,7 +49,10 @@ public class MainMenu extends Application {
         hBox.setAlignment(Pos.CENTER);
         hBox.getChildren().addAll(new Button("button1"), new Button("button2"));
 
+        TextArea textArea1 = new TextArea();
+
         tab1.setContent(hBox);
+        tab1.setContent(textArea1);
 
         VBox vBox = new VBox(10);
         vBox.setStyle("-fx-background-color: #7f6984");

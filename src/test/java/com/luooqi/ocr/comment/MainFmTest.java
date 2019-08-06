@@ -1,4 +1,4 @@
-package com.luooqi.ocr;
+package com.luooqi.ocr.comment;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.StaticLog;
@@ -23,14 +23,19 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import org.jnativehook.GlobalScreen;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,21 +46,12 @@ import static javafx.application.Platform.runLater;
  *      1.文字识别(开源代码原有功能)
  *      2.参数设置(1.自由截图获取位置坐标，并显示在对应的框中  2.对应框的数据可编辑， 3.保存或者取消参数按钮)
  *      3.历史参数(1.展示历史参数， 2.历史参数可以编辑 3.删除)
- *      4.操作提示弹框
- *
- *      参数设置包括：
- *          1.位置（默认显示上一次的坐标数据，并支持手工输入和自由截图获取位置）
- *          2.正确结果的数量，用于和实际结果显示
- *          3.时间：起始和终止，起始时间默认为当前时间，终止时间默认不设置
- *          4.频率： 截图频率设置
- *          5.功能按钮： 开始 ，停止
- *
  */
-public class MainFm extends Application {
+public class MainFmTest extends Application {
 
-    public static void main(String[] args) {
-        launch(args);
-    }
+    private final  static TabPane tabPane = new TabPane();
+
+
 
     private static StageInfo stageInfo;
     public static Stage stage;
@@ -65,6 +61,17 @@ public class MainFm extends Application {
     private static TextArea textArea;
     //private static boolean isSegment = true;
     //private static String ocrText = "";
+    private final static int paramSettingColumnWith = 80;
+
+    //时间设置
+    private DatePicker checkInDatePicker;
+    private DatePicker checkOutDatePicker;
+    //开始时间和结束时间最小时间间隔， 单位分钟
+    private final static long minTimeGap = 5;
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 
     @Override
     public void start(Stage primaryStage) {
@@ -84,16 +91,38 @@ public class MainFm extends Application {
 //            isSegment = newValue.getUserData().toString().equals("segmentBtn");
 //        });
 
+        //初始化面板
+        tabPane.setStyle("-fx-background-color: #f5f5dc");
+        tabPane.setPrefHeight(300);
+        tabPane.setPrefWidth(300);
+
+        //ocr tab
+        Tab ocrTab = new Tab("ocr操作");
+        //参数设置门tab
+        Tab paramSettingTab = new Tab("参数设置");
+        // 历史数据 tab
+        Tab historyDataTab = new Tab("历史参数");
+
+        ocrTab.setClosable(false);
+        paramSettingTab.setClosable(false);
+        historyDataTab.setClosable(false);
+
+        //tab标签下对应的面板
+        BorderPane ocrPane = new BorderPane();
+
+
+
+
         // 工具栏
         HBox topBar = new HBox(
-                CommUtils.createButton("snapBtn", MainFm::doSnap, "截图"),
-                CommUtils.createButton("openImageBtn", MainFm::recImage, "打开"),
+                CommUtils.createButton("snapBtn", MainFmTest::doSnap, "截图"),
+                CommUtils.createButton("openImageBtn", MainFmTest::recImage, "打开"),
                 CommUtils.createButton("copyBtn", this::copyText, "复制"),
                 CommUtils.createButton("pasteBtn", this::pasteText, "粘贴"),
                 CommUtils.createButton("clearBtn", this::clearText, "清空"),
-                CommUtils.createButton("wrapBtn", this::wrapText, "换行"),
-                CommUtils.createButton("coordinateBtn", MainFm::coordinateSet, "坐标设置"),
-                CommUtils.createButton("settingBtn", MainFm::paramSet, "参数设置")
+                CommUtils.createButton("wrapBtn", this::wrapText, "换行")
+//                CommUtils.createButton("coordinateBtn", MainFmTest::coordinateSet, "坐标设置"),
+//                CommUtils.createButton("settingBtn", MainFmTest::paramSet, "参数设置")
                 //CommUtils.SEPARATOR, resetBtn, segmentBtn
         );
         topBar.setId("topBar");
@@ -118,31 +147,169 @@ public class MainFm extends Application {
         footerBar.getItems().add(statsLabel);
 
         //三者所在位置之间的关系
-        BorderPane root = new BorderPane();
-        root.setTop(topBar);
-        root.setCenter(textArea);
-        root.setBottom(footerBar);
-
+        ocrPane.setTop(topBar);
+        ocrPane.setCenter(textArea);
+        ocrPane.setBottom(footerBar);
         //主题样式
-        root.getStylesheets().addAll(
+        ocrPane.getStylesheets().addAll(
                 getClass().getResource("/css/main.css").toExternalForm()
         );
 
-        Tab tab1 = new Tab();
-        tab1.setGraphic(root);
-        tab1.setId("");
+        //ocrPan的内容放在tab中
+        ocrTab.setContent(ocrPane);
+
+        paramSettingTab.setContent(paramterSettingPane());
 
 
-        TabPane tabPane = new TabPane(
-                tab1
-        );
+
+        tabPane.getTabs().addAll(ocrTab,paramSettingTab,historyDataTab);
 
 
 
         CommUtils.initStage(primaryStage);
-        mainScene = new Scene(root, 670, 470);
+        mainScene = new Scene(tabPane, 670, 470);
         stage.setScene(mainScene);
         stage.show();
+    }
+
+    /**
+     *  参数设置布局
+     * @return
+     */
+    private GridPane paramterSettingPane(){
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(0, 10, 0, 10));
+        //位置参数坐标
+        paramSettingLocation(grid);
+
+        //测试版测试数量
+        paramSettingTestNum(grid);
+
+        //时间设置
+        paramSettingTime(grid);
+
+
+
+        return grid;
+    }
+
+    private GridPane paramSettingLocation(GridPane grid){
+
+        //位置信息， 占用一列两行
+        Label locationName = new Label("位置信息");
+        locationName.setPrefWidth(paramSettingColumnWith);
+        GridPane.setConstraints(locationName, 0, 0,1,2);
+        grid.getChildren().add(locationName);
+
+        //################标签名##################
+        //字段框 --
+        Label leftTopXName = new Label("左上角X轴");
+        GridPane.setConstraints(leftTopXName, 1, 0);
+        grid.getChildren().add(leftTopXName);
+
+        Label leftTopYName = new Label("左上角Y轴");
+        GridPane.setConstraints(leftTopYName, 2, 0);
+        grid.getChildren().add(leftTopYName);
+
+        Label widthName = new Label("宽度");
+        GridPane.setConstraints(widthName, 3, 0);
+        grid.getChildren().add(widthName);
+
+        Label heightName = new Label("高度");
+        GridPane.setConstraints(heightName, 4, 0);
+        grid.getChildren().add(heightName);
+
+        ///##################################################
+        ///##################具体参数位置##################
+        ///##################################################
+        //字段框 -- 左上角x
+        TextField leftTopX = new TextField();
+        leftTopX.setPromptText("leftTopX");
+        GridPane.setConstraints(leftTopX, 1, 1);
+        grid.getChildren().add(leftTopX);
+        //字段框 -- 左上角y
+        TextField leftTopY = new TextField();
+        leftTopY.setPromptText("leftTopY");
+        GridPane.setConstraints(leftTopY, 2, 1);
+        grid.getChildren().add(leftTopY);
+        //字段框 -- 截图的宽度
+        TextField width = new TextField();
+        width.setPromptText("width");
+        GridPane.setConstraints(width, 3, 1);
+        grid.getChildren().add(width);
+        //字段框 -- 截图的高度
+        TextField height = new TextField();
+        height.setPromptText("height");
+        GridPane.setConstraints(height, 4, 1);
+        grid.getChildren().add(height);
+
+        //############################新建截图获取位置信息的按钮
+        Button ocrButton = new Button("新建位置");
+        GridPane.setConstraints(ocrButton, 5, 1);
+        grid.getChildren().add(ocrButton);
+
+        return grid;
+    }
+
+    private GridPane paramSettingTestNum(GridPane grid){
+
+        //测试版当前测试的数量
+        Label testNumName = new Label("测试数量");
+        testNumName.setPrefWidth(paramSettingColumnWith);
+        GridPane.setConstraints(testNumName, 0, 2,1,2);
+        grid.getChildren().add(testNumName);
+
+        TextField testNum = new TextField();
+        testNum.setPromptText("testNum");
+        GridPane.setConstraints(testNum, 1, 2);
+        grid.getChildren().add(testNum);
+
+        return grid;
+    }
+
+    private GridPane paramSettingTime(GridPane grid){
+        //时间设置 http://www.javafxchina.net/blog/2015/04/doc03_datepicker/
+        Label timeName = new Label("时间设置");
+        timeName.setPrefWidth(paramSettingColumnWith);
+        GridPane.setConstraints(timeName, 0, 3,1,2);
+        grid.getChildren().add(timeName);
+
+        checkInDatePicker = new DatePicker();
+        checkOutDatePicker = new DatePicker();
+        checkInDatePicker.setValue(LocalDate.now());
+        final Callback<DatePicker, DateCell> dayCellFactory =
+                new Callback<DatePicker, DateCell>() {
+                    @Override
+                    public DateCell call(final DatePicker datePicker) {
+                        return new DateCell() {
+                            @Override
+                            public void updateItem(LocalDate item, boolean empty) {
+                                super.updateItem(item, empty);
+                                if (item.isBefore(
+                                        checkInDatePicker.getValue().plus(minTimeGap, (TemporalUnit) TimeUnit.MINUTES))
+                                ) {
+                                    setDisable(true);
+                                    setStyle("-fx-background-color: #ffc0cb;");
+                                }
+                                long p = ChronoUnit.MINUTES.between(
+                                        checkInDatePicker.getValue(), item
+                                );
+                                setTooltip(new Tooltip(
+                                        "You're about to stay for " + p + " minutes")
+                                );
+                            }
+                        };
+                    }
+                };
+        checkOutDatePicker.setDayCellFactory(dayCellFactory);
+        checkOutDatePicker.setValue(checkInDatePicker.getValue().plusDays(1));
+        grid.add(checkInDatePicker, 1, 3);
+        grid.add(checkOutDatePicker, 2, 3);
+        return grid;
+
     }
 
     private void wrapText() {
@@ -199,7 +366,7 @@ public class MainFm extends Application {
         }
         stageInfo = new StageInfo(stage.getX(), stage.getY(),
                 stage.getWidth(), stage.getHeight(), stage.isFullScreen());
-        MainFm.stage.close();
+        MainFmTest.stage.close();
         try {
             BufferedImage image = ImageIO.read(selectedFile);
             doOcr(image);
