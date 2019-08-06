@@ -2,6 +2,8 @@ package com.luooqi.ocr.comment;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.StaticLog;
+import com.jfoenix.controls.JFXDatePicker;
+import com.jfoenix.controls.JFXTimePicker;
 import com.luooqi.ocr.controller.ProcessController;
 import com.luooqi.ocr.model.CaptureInfo;
 import com.luooqi.ocr.model.StageInfo;
@@ -24,6 +26,7 @@ import javafx.scene.text.FontPosture;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import javafx.util.StringConverter;
 import org.jnativehook.GlobalScreen;
 
 import javax.imageio.ImageIO;
@@ -31,11 +34,11 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -278,9 +281,13 @@ public class MainFmTest extends Application {
         GridPane.setConstraints(timeName, 0, 3,1,2);
         grid.getChildren().add(timeName);
 
+        JFXDatePicker jfxDatePicker = new JFXDatePicker();
+        JFXTimePicker jfxTimePicker = new JFXTimePicker();
+
         checkInDatePicker = new DatePicker();
         checkOutDatePicker = new DatePicker();
-        checkInDatePicker.setValue(LocalDate.now());
+
+        jfxDatePicker.setValue(LocalDate.now());
         final Callback<DatePicker, DateCell> dayCellFactory =
                 new Callback<DatePicker, DateCell>() {
                     @Override
@@ -290,8 +297,10 @@ public class MainFmTest extends Application {
                             public void updateItem(LocalDate item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item.isBefore(
-                                        checkInDatePicker.getValue().plus(minTimeGap, (TemporalUnit) TimeUnit.MINUTES))
-                                ) {
+                                        //checkInDatePicker.getValue().plus(minTimeGap, (TemporalUnit) TimeUnit.MINUTES)
+                                        checkInDatePicker.getValue().plusDays(1)
+                                ))
+                                {
                                     setDisable(true);
                                     setStyle("-fx-background-color: #ffc0cb;");
                                 }
@@ -307,6 +316,8 @@ public class MainFmTest extends Application {
                 };
         checkOutDatePicker.setDayCellFactory(dayCellFactory);
         checkOutDatePicker.setValue(checkInDatePicker.getValue().plusDays(1));
+
+        
         grid.add(checkInDatePicker, 1, 3);
         grid.add(checkOutDatePicker, 2, 3);
         return grid;
