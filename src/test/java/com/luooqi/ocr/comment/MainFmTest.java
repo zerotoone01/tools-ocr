@@ -272,6 +272,7 @@ public class MainFmTest extends Application {
 
     private GridPane paramSettingTime(GridPane grid){
         //时间设置 http://www.javafxchina.net/blog/2015/04/doc03_datepicker/
+        // https://www.w3cschool.cn/java/javafx-datepicker.html
         Label timeName = new Label("时间设置");
         timeName.setPrefWidth(paramSettingColumnWith);
         GridPane.setConstraints(timeName, 0, 3,1,2);
