@@ -3,6 +3,7 @@ package com.luooqi.ocr.comment;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.StaticLog;
 import com.jfoenix.controls.JFXDatePicker;
+import com.jfoenix.controls.JFXRadioButton;
 import com.jfoenix.controls.JFXTimePicker;
 import com.luooqi.ocr.controller.ProcessController;
 import com.luooqi.ocr.model.CaptureInfo;
@@ -71,6 +72,13 @@ public class MainFmTest extends Application {
     private DatePicker checkOutDatePicker;
     //开始时间和结束时间最小时间间隔， 单位分钟
     private final static long minTimeGap = 5;
+
+
+    private JFXDatePicker jfxDatePickerIn = new JFXDatePicker();
+    private JFXTimePicker jfxTimePickerIn = new JFXTimePicker();
+
+    private JFXDatePicker jfxDatePickerOut = new JFXDatePicker();
+    private JFXTimePicker jfxTimePickerOut = new JFXTimePicker();
 
     public static void main(String[] args) {
         launch(args);
@@ -194,7 +202,15 @@ public class MainFmTest extends Application {
         //时间设置
         paramSettingTime(grid);
 
+        //截图频率设置
+        paramSettingFrequency(grid);
 
+
+        //TODO 选择测试面板类型, 不同的测试版采用不同的处理方式，效率更高
+        //
+
+        //开始停止按钮
+        taskStartOrStopButton(grid);
 
         return grid;
     }
@@ -281,47 +297,98 @@ public class MainFmTest extends Application {
         GridPane.setConstraints(timeName, 0, 3,1,2);
         grid.getChildren().add(timeName);
 
-        JFXDatePicker jfxDatePicker = new JFXDatePicker();
-        JFXTimePicker jfxTimePicker = new JFXTimePicker();
 
         checkInDatePicker = new DatePicker();
         checkOutDatePicker = new DatePicker();
 
-        jfxDatePicker.setValue(LocalDate.now());
-        final Callback<DatePicker, DateCell> dayCellFactory =
-                new Callback<DatePicker, DateCell>() {
-                    @Override
-                    public DateCell call(final DatePicker datePicker) {
-                        return new DateCell() {
-                            @Override
-                            public void updateItem(LocalDate item, boolean empty) {
-                                super.updateItem(item, empty);
-                                if (item.isBefore(
-                                        //checkInDatePicker.getValue().plus(minTimeGap, (TemporalUnit) TimeUnit.MINUTES)
-                                        checkInDatePicker.getValue().plusDays(1)
-                                ))
-                                {
-                                    setDisable(true);
-                                    setStyle("-fx-background-color: #ffc0cb;");
-                                }
-                                long p = ChronoUnit.MINUTES.between(
-                                        checkInDatePicker.getValue(), item
-                                );
-                                setTooltip(new Tooltip(
-                                        "You're about to stay for " + p + " minutes")
-                                );
-                            }
-                        };
-                    }
-                };
-        checkOutDatePicker.setDayCellFactory(dayCellFactory);
-        checkOutDatePicker.setValue(checkInDatePicker.getValue().plusDays(1));
+//        checkInDatePicker.setValue(LocalDate.now());
+//        final Callback<DatePicker, DateCell> dayCellFactory =
+//                new Callback<DatePicker, DateCell>() {
+//                    @Override
+//                    public DateCell call(final DatePicker datePicker) {
+//                        return new DateCell() {
+//                            @Override
+//                            public void updateItem(LocalDate item, boolean empty) {
+//                                super.updateItem(item, empty);
+//                                if (item.isBefore(
+//                                        //checkInDatePicker.getValue().plus(minTimeGap, (TemporalUnit) TimeUnit.MINUTES)
+//                                        checkInDatePicker.getValue().plusDays(1)
+//                                ))
+//                                {
+//                                    setDisable(true);
+//                                    setStyle("-fx-background-color: #ffc0cb;");
+//                                }
+//                                long p = ChronoUnit.MINUTES.between(
+//                                        checkInDatePicker.getValue(), item
+//                                );
+//                                setTooltip(new Tooltip(
+//                                        "You're about to stay for " + p + " minutes")
+//                                );
+//                            }
+//                        };
+//                    }
+//                };
+//        checkOutDatePicker.setDayCellFactory(dayCellFactory);
+//        checkOutDatePicker.setValue(checkInDatePicker.getValue().plusDays(1));
 
-        
-        grid.add(checkInDatePicker, 1, 3);
-        grid.add(checkOutDatePicker, 2, 3);
+
+
+        jfxDatePickerIn.setValue(LocalDate.now());
+        jfxTimePickerIn.set24HourView(true);
+        jfxDatePickerIn.setPrefSize(100, 0);
+        jfxTimePickerIn.setPrefSize(100, 0);
+
+        jfxDatePickerOut.setValue(LocalDate.now());
+        jfxTimePickerOut.set24HourView(true);
+        jfxDatePickerOut.setPrefSize(100, 0);
+        jfxTimePickerOut.setPrefSize(100, 0);
+
+
+        Label dateGap = new Label("--");
+        dateGap.setPrefWidth(100);
+        grid.add(jfxDatePickerIn, 1, 3);
+        grid.add(jfxTimePickerIn, 2, 3);
+        grid.add(dateGap, 3, 3);
+        grid.add(jfxDatePickerOut, 4, 3);
+        grid.add(jfxTimePickerOut, 5, 3);
         return grid;
 
+    }
+
+    private GridPane paramSettingFrequency(GridPane grid){
+
+        //截图频率
+        Label frequencyName = new Label("截图频率");
+        frequencyName.setPrefWidth(paramSettingColumnWith);
+        GridPane.setConstraints(frequencyName, 0, 4);
+        grid.getChildren().add(frequencyName);
+
+        //频率值
+        TextField frequency = new TextField();
+        frequency.setPromptText("频率，单位：次/s");
+        GridPane.setConstraints(frequency, 1, 4);
+        grid.getChildren().add(frequency);
+
+        return grid;
+    }
+
+    private GridPane taskStartOrStopButton(GridPane grid){
+        ToggleGroup group = new ToggleGroup();
+
+        JFXRadioButton startRadio = new JFXRadioButton("开始");
+        startRadio.setPadding(new Insets(10));
+        startRadio.setToggleGroup(group);
+
+        JFXRadioButton stopRadio = new JFXRadioButton("结束");
+        stopRadio.setPadding(new Insets(10));
+        stopRadio.setToggleGroup(group);
+
+        GridPane.setConstraints(startRadio, 1, 5);
+        grid.getChildren().add(startRadio);
+        GridPane.setConstraints(stopRadio, 2, 5);
+        grid.getChildren().add(stopRadio);
+
+        return grid;
     }
 
     private void wrapText() {
